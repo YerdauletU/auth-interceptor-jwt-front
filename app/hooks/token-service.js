@@ -27,6 +27,12 @@ const removeUser = () => {
   localStorage.removeItem("user");
 };
 
+const getAsd = () => {
+  let ff = 55;
+  console.log(ff);
+  return ff;
+}
+
 const TokenService = {
   getLocalRefreshToken,
   getLocalAccessToken,
@@ -34,6 +40,7 @@ const TokenService = {
   getUser,
   setUser,
   removeUser,
+  getAsd,
 };
 
 export default TokenService;

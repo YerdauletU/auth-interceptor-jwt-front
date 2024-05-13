@@ -85,4 +85,6 @@ const login = async (credentials) => {
   }
 };
 
-export { instance, login };
+export default { instance, login };
+
+// export default {getMeat};
