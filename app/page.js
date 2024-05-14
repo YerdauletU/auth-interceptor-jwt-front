@@ -2,20 +2,13 @@
 
 import axios from "axios";
 
-import { getAsd } from "./hooks/papka";
-
 import { useState } from "react";
 
-import Image from "next/image";
-import styles from "./page.module.css";
+import getName from "./hooks/papka";
 
-const getReg = async (name, password) => {
-  let reqUser = await axios.post("http://localhost:8080/api/signup", {
-    name,
-    password,
-  });
-  console.log(reqUser.data);
-};
+import { getStorage, setStorage, removeStorage } from "./hooks/storage-service";
+
+import styles from "./page.module.css";
 
 // Создаем экземпляр Axios
 const instance = axios.create({
@@ -31,12 +24,17 @@ const saveAccessTokenToLocalStorage = (accessToken) => {
 instance.interceptors.request.use(
   async function (config) {
     // Получаем access token из localStorage
-    const accessToken = localStorage.getItem("accessToken");
+    const access = localStorage.getItem("accessToken");
+
+    // console.log("111 localStorage: " + access);
+    // console.log(config);
+    // console.log(config.data);
+    // console.log("=========================");
 
     // Проверяем наличие access token
-    if (accessToken) {
+    if (access) {
       // Если есть access token, добавляем его в заголовок Authorization
-      config.headers["Authorization"] = `Bearer ${accessToken}`;
+      config.headers["Authorization"] = `Bearer ${access}`;
     }
 
     // Возвращаем конфигурацию запроса
@@ -52,6 +50,7 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   function (response) {
     // Обработка успешного ответа
+    console.log("success");
     return response;
   },
   async function (error) {
@@ -60,31 +59,32 @@ instance.interceptors.response.use(
     if (error.response.status === 404) console.log("error");
 
     console.log(error.config);
+    console.log(error.config._retry);
 
     // Проверяем, была ли ошибка из-за истекшего access token
     if (error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       console.log(error.config);
+      console.log(error.config._retry);
 
-      let accessToken = error.response.data.access;
+      let access = error.response.data.access;
 
       try {
-        console.log("access: " + accessToken);
+        console.log("access: " + access);
         // Отправляем запрос на обновление access token на сервер
         const response = await axios.post(
           "http://localhost:8080/api/refresh",
           {},
           {
             headers: {
-              Authorization: `Bearer ${accessToken}`,
+              Authorization: `Bearer ${access}`,
             },
           }
         );
 
         // Сохраняем новый access token в localStorage
-        saveAccessTokenToLocalStorage(response.data.accessToken);
-
+        saveAccessTokenToLocalStorage(response.data.access);
         // Повторяем оригинальный запрос с новым access token
         // return instance(originalRequest);
         return response;
@@ -95,7 +95,6 @@ instance.interceptors.response.use(
         return Promise.reject(error);
       }
     }
-
     // Возвращаем ошибку, если она не связана с авторизацией
     return Promise.reject(error);
   }
@@ -106,10 +105,8 @@ const login = async (credentials) => {
   try {
     // Отправляем запрос на сервер для аутентификации
     const response = await instance.post("/login", credentials);
-
     // Сохраняем полученный access token в localStorage
     saveAccessTokenToLocalStorage(response.data.accessToken);
-
     // Возвращаем ответ сервера
     return response;
   } catch (error) {
@@ -118,19 +115,44 @@ const login = async (credentials) => {
   }
 };
 
+const signup = async (credentials) => {
+  try {
+    // Отправляем запрос на сервер для аутентификации
+    const response = await axios.post(
+      "http://localhost:8080/api/signup",
+      credentials
+    );
+    // Сохраняем полученный access token в localStorage
+    saveAccessTokenToLocalStorage(response.data.accessToken);
+    // Возвращаем ответ сервера
+    return response;
+  } catch (error) {
+    // Обработка ошибок
+    return Promise.reject(error);
+  }
+};
+
+let qwe = "user";
+let zxc = "xxXxx";
+
 export default function Home() {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
 
   return (
     <div>
-      <p>auth</p>
+      <h1 onClick={() => {
+        setStorage(qwe, zxc);
+        console.log(getStorage(qwe));
+      }}>first</h1>
+      <h1 onClick={() => console.log(getStorage(qwe))}>second</h1>
+      <h1 onClick={() => removeStorage(qwe)}>third</h1>
+      <p onClick={getName}>auth</p>
       <input
         type="text"
         value={name}
         onChange={(e) => {
           setName(e.target.value);
-          // console.log(name);
         }}
       />
       <br />
@@ -139,17 +161,22 @@ export default function Home() {
         value={password}
         onChange={(e) => {
           setPassword(e.target.value);
-          // console.log(password);
         }}
       />
       <br />
       <button
         onClick={() => {
           login({ name, password });
-          // console.log("jfnjsncs");
         }}
       >
         auth
+      </button>
+      <button
+        onClick={() => {
+          signup({ name, password });
+        }}
+      >
+        reg
       </button>
     </div>
   );

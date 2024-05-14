@@ -1,3 +1,5 @@
-export default function getAsd() {
-    console.log("super ASD");
+const getName = () => {
+   console.log("Era");
 }
+
+export default getName;
