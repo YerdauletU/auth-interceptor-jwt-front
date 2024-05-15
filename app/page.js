@@ -71,7 +71,6 @@ instance.interceptors.response.use(
       let access = error.response.data.access;
 
       try {
-        console.log("access: " + access);
         // Отправляем запрос на обновление access token на сервер
         const response = await axios.post(
           "http://localhost:8080/api/refresh",
@@ -85,9 +84,13 @@ instance.interceptors.response.use(
 
         // Сохраняем новый access token в localStorage
         saveAccessTokenToLocalStorage(response.data.access);
+        console.log("==========================");
+        console.log("NEW ACCESS: " + response.data.access);
+        // Обновление заголовка для текущего запроса
+        originalRequest.headers['Authorization'] = `Bearer ${response.data.access}`;
         // Повторяем оригинальный запрос с новым access token
-        // return instance(originalRequest);
-        return response;
+        return instance(originalRequest);
+        // return response;
       } catch (error) {
         // Если запрос на обновление токена тоже завершился ошибкой, перенаправляем пользователя на страницу авторизации
         console.error("Ошибка обновления токена:", error);
@@ -125,7 +128,7 @@ const signup = async (credentials) => {
     // Сохраняем полученный access token в localStorage
     saveAccessTokenToLocalStorage(response.data.accessToken);
     // Возвращаем ответ сервера
-    return response;
+    return response; 
   } catch (error) {
     // Обработка ошибок
     return Promise.reject(error);
@@ -141,12 +144,23 @@ export default function Home() {
 
   return (
     <div>
-      <h1 onClick={() => {
-        setStorage(qwe, zxc);
-        console.log(getStorage(qwe));
-      }}>first</h1>
-      <h1 onClick={() => console.log(getStorage(qwe))}>second</h1>
-      <h1 onClick={() => removeStorage(qwe)}>third</h1>
+      <h1
+        onClick={() => {
+          setStorage(qwe, zxc);
+          console.log(`created: ${qwe}-` + getStorage(qwe));
+        }}
+      >
+        first
+      </h1>
+      <h1 onClick={() => console.log("local: " + getStorage(qwe))}>second</h1>
+      <h1
+        onClick={() => {
+          console.log(`deleted: ${qwe}`);
+          removeStorage(qwe);
+        }}
+      >
+        third
+      </h1>
       <p onClick={getName}>auth</p>
       <input
         type="text"
