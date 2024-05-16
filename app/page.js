@@ -23,20 +23,25 @@ const saveAccessTokenToLocalStorage = (accessToken) => {
 // Добавляем интерцептор запросов
 instance.interceptors.request.use(
   async function (config) {
-    // Получаем access token из localStorage
-    const access = localStorage.getItem("accessToken");
-
-    // console.log("111 localStorage: " + access);
-    // console.log(config);
-    // console.log(config.data);
-    // console.log("=========================");
+    // console.log(config.headers);
+    let access;
+    if (config.headers.Authorization) {
+      access = config.headers.Authorization.split(" ")[1];
+      // console.log("unic: " + access);
+      // console.log("unic: " + typeof access);
+    } else if (localStorage.getItem("accessToken")) {
+      access = localStorage.getItem("accessToken");
+    } else {
+      access = undefined;
+    }
 
     // Проверяем наличие access token
     if (access) {
       // Если есть access token, добавляем его в заголовок Authorization
       config.headers["Authorization"] = `Bearer ${access}`;
     }
-
+    console.log(config.headers);
+    console.log("==============");
     // Возвращаем конфигурацию запроса
     return config;
   },
@@ -54,19 +59,20 @@ instance.interceptors.response.use(
     return response;
   },
   async function (error) {
+    console.log("status" + error.response.status);
     const originalRequest = error.config;
 
     if (error.response.status === 404) console.log("error");
 
-    console.log(error.config);
-    console.log(error.config._retry);
+    console.log("--+--" + error.config.headers);
+    // console.log(error.config._retry);
 
     // Проверяем, была ли ошибка из-за истекшего access token
     if (error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      console.log(error.config);
-      console.log(error.config._retry);
+      console.log("++-++" + error.config.headers);
+      // console.log(error.config._retry);
 
       let access = error.response.data.access;
 
@@ -84,12 +90,16 @@ instance.interceptors.response.use(
 
         // Сохраняем новый access token в localStorage
         saveAccessTokenToLocalStorage(response.data.access);
-        console.log("==========================");
-        console.log("NEW ACCESS: " + response.data.access);
+        // console.log("==========================");
+        // console.log("NEW ACCESS: " + response.data.access);
         // Обновление заголовка для текущего запроса
-        originalRequest.headers['Authorization'] = `Bearer ${response.data.access}`;
+        console.log("first: " + originalRequest.headers);
+        originalRequest.headers["Authorization"] = `Bearer ${response.data.access}`;
+        // console.log("==========================");
+        console.log("second: " + originalRequest.headers);
         // Повторяем оригинальный запрос с новым access token
         return instance(originalRequest);
+
         // return response;
       } catch (error) {
         // Если запрос на обновление токена тоже завершился ошибкой, перенаправляем пользователя на страницу авторизации
@@ -99,7 +109,10 @@ instance.interceptors.response.use(
       }
     }
     // Возвращаем ошибку, если она не связана с авторизацией
-    return Promise.reject(error);
+    console.log("super success");
+    console.log(response);
+    // return response;
+    // return Promise.reject(error);
   }
 );
 
@@ -128,14 +141,14 @@ const signup = async (credentials) => {
     // Сохраняем полученный access token в localStorage
     saveAccessTokenToLocalStorage(response.data.accessToken);
     // Возвращаем ответ сервера
-    return response; 
+    return response;
   } catch (error) {
     // Обработка ошибок
     return Promise.reject(error);
   }
 };
 
-let qwe = "user";
+let qwe = "accessToken";
 let zxc = "xxXxx";
 
 export default function Home() {
@@ -150,16 +163,18 @@ export default function Home() {
           console.log(`created: ${qwe}-` + getStorage(qwe));
         }}
       >
-        first
+        setStorage
       </h1>
-      <h1 onClick={() => console.log("local: " + getStorage(qwe))}>second</h1>
+      <h1 onClick={() => console.log("local: " + getStorage(qwe))}>
+        getStorage
+      </h1>
       <h1
         onClick={() => {
           console.log(`deleted: ${qwe}`);
           removeStorage(qwe);
         }}
       >
-        third
+        removeStorage
       </h1>
       <p onClick={getName}>auth</p>
       <input
